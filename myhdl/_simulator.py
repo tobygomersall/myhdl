@@ -2,6 +2,7 @@
 #  Python as a Hardware Description Language.
 #
 #  Copyright (C) 2003-2008 Jan Decaluwe
+#  and 2015 Henry Gomersall
 #
 #  The myhdl library is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU Lesser General Public License as
@@ -25,7 +26,6 @@ now -- function that returns the current simulation time
 """
 
 from contextlib import contextmanager
-import weakref
 import sys
 import types
 
@@ -34,6 +34,22 @@ try:
 except ImportError:
     import dummy_threading as _threading
 
+class ThreadLocalContext(_threading.local):
+
+    def __init__(self):
+        import weakref
+        self.__dict__['_default_context'] = {'signals': [],
+                                             'siglist': [],
+                                             'futureEvents': [],
+                                             'time': 0,
+                                             'cosim': 0,
+                                             'tracing': 0,
+                                             'tf': None,
+                                             'signal_state': {}}
+
+        self.__dict__['context_dict'] = weakref.WeakKeyDictionary()
+        self.__dict__['current_context'] = None
+
 class _SimContextManager(types.ModuleType):
 
     def __init__(self):
@@ -41,19 +57,7 @@ class _SimContextManager(types.ModuleType):
         import copy
         self.copy = copy.copy
 
-        self._data = _threading.local()
-        self._data._default_context = {'signals': [],
-                                       'siglist': [],
-                                       'futureEvents': [],
-                                       'time': 0,
-                                       'cosim': 0,
-                                       'tracing': 0,
-                                       'tf': None,
-                                       'signal_state': {}}
-
-        self._data.context_dict = weakref.WeakKeyDictionary()
-
-        self._data.current_context = None
+        self._data = ThreadLocalContext()
 
     def _set_context_id(self, context_id=None):
         
