@@ -33,12 +33,10 @@ from myhdl._delay import delay
 from myhdl._join import join
 from myhdl._Signal import _Signal, _WaiterList, posedge, negedge
 from myhdl import _simulator
-from myhdl._simulator import _siglist, _futureEvents
 from myhdl._enum import enum
 
-
-schedule = _futureEvents.append
-
+def schedule(event):
+    _simulator._futureEvents.append(event)
 
 class _Waiter(object):
 

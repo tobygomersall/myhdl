@@ -29,7 +29,7 @@ from copy import deepcopy
 from myhdl._Signal import _Signal
 from myhdl._Waiter import _SignalWaiter, _SignalTupleWaiter
 from myhdl._intbv import intbv
-from myhdl._simulator import _siglist
+import myhdl._simulator as sim
 
 # shadow signals
         
@@ -241,7 +241,7 @@ class _TristateSignal(_ShadowSignal):
                     res = None
                     break
             self._next = res
-            _siglist.append(self)
+            sim._siglist.append(self)
 
 
     def toVerilog(self):
@@ -280,4 +280,4 @@ class _TristateDriver(_Signal):
             # restore original value to cater for intbv handler
             self._next = self._sig._orival
             self._setNextVal(val)
-        _siglist.append(self)   
+        sim._siglist.append(self)   

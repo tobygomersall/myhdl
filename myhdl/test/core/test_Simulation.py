@@ -31,7 +31,7 @@ from myhdl import Simulation, SimulationError, now, delay, StopSimulation, join
 from myhdl import Signal, intbv
 from myhdl._Simulation import _error
 
-from myhdl._simulator import _siglist
+from myhdl import _simulator
 
 QUIET=1
 
@@ -684,7 +684,7 @@ class Waveform(TestCase):
         val = randrange(0, 4)
         waveform.append((interval, val, sigdelay))
         duration = interval + duration
-         
+    
     def stimulus(self):
         for interval, val, sigdelay in self.waveform:
             yield delay(interval)
@@ -712,8 +712,11 @@ class Waveform(TestCase):
         stimulus = self.stimulus()
         expected = getExpectedTimes(self.waveform, isPosedge)     
         response = self.response(clause=s.posedge, expected=expected)
-        self.runSim(Simulation(stimulus, response))
-        self.assertTrue(self.duration <= now())
+
+        sim = Simulation(stimulus, response)
+        self.runSim(sim)
+        with _simulator.simulation_context(sim):
+            self.assertTrue(self.duration <= now())
 
     def testNegedge(self):
         """ Negedge waveform test """
@@ -721,8 +724,11 @@ class Waveform(TestCase):
         stimulus = self.stimulus()
         expected = getExpectedTimes(self.waveform, isNegedge)     
         response = self.response(clause=s.negedge, expected=expected)
-        self.runSim(Simulation(stimulus, response))
-        self.assertTrue(self.duration <= now())
+        
+        sim = Simulation(stimulus, response)
+        self.runSim(sim)
+        with _simulator.simulation_context(sim):
+            self.assertTrue(self.duration <= now())
 
     def testEdge(self):
         """ Edge waveform test """
@@ -731,8 +737,11 @@ class Waveform(TestCase):
         expected = getExpectedTimes(self.waveform, isEdge)
         response = self.response(clause=(s.negedge, s.posedge),
                                  expected=expected)
-        self.runSim(Simulation(stimulus, response))
-        self.assertTrue(self.duration <= now())
+
+        sim = Simulation(stimulus, response)
+        self.runSim(sim)
+        with _simulator.simulation_context(sim):
+            self.assertTrue(self.duration <= now())
 
     def testEvent(self):
         """ Event waveform test """
@@ -741,8 +750,11 @@ class Waveform(TestCase):
         expected = getExpectedTimes(self.waveform, isEvent)     
         # print expected
         response = self.response(clause=s, expected=expected)
-        self.runSim(Simulation(stimulus, response))
-        self.assertTrue(self.duration <= now())
+
+        sim = Simulation(stimulus, response)
+        self.runSim(sim)
+        with _simulator.simulation_context(sim):
+            self.assertTrue(self.duration <= now())
             
     def testRedundantEvents(self):
         """ Redundant event waveform test """
@@ -750,8 +762,11 @@ class Waveform(TestCase):
         stimulus = self.stimulus()
         expected = getExpectedTimes(self.waveform, isEvent)     
         response = self.response(clause=(s,) * 6, expected=expected)
-        self.runSim(Simulation(stimulus, response))
-        self.assertTrue(self.duration <= now())
+
+        sim = Simulation(stimulus, response)
+        self.runSim(sim)
+        with _simulator.simulation_context(sim):
+            self.assertTrue(self.duration <= now())
         
     def testRedundantEventAndEdges(self):       
         """ Redundant edge waveform test """
@@ -760,8 +775,11 @@ class Waveform(TestCase):
         expected = getExpectedTimes(self.waveform, isEvent)     
         response = self.response(clause=(s, s.negedge, s.posedge),
                                  expected=expected)
-        self.runSim(Simulation(stimulus, response))
-        self.assertTrue(self.duration <= now())
+
+        sim = Simulation(stimulus, response)
+        self.runSim(sim)
+        with _simulator.simulation_context(sim):
+            self.assertTrue(self.duration <= now())
         
     def testRedundantPosedges(self):
         """ Redundant posedge waveform test """
@@ -769,8 +787,11 @@ class Waveform(TestCase):
         stimulus = self.stimulus()
         expected = getExpectedTimes(self.waveform, isPosedge)     
         response = self.response(clause=(s.posedge,) * 3, expected=expected)
-        self.runSim(Simulation(stimulus, response))
-        self.assertTrue(self.duration <= now())
+
+        sim = Simulation(stimulus, response)
+        self.runSim(sim)
+        with _simulator.simulation_context(sim):
+            self.assertTrue(self.duration <= now())
 
     def testRedundantNegedges(self):
         """ Redundant negedge waveform test """
@@ -778,8 +799,11 @@ class Waveform(TestCase):
         stimulus = self.stimulus()
         expected = getExpectedTimes(self.waveform, isNegedge)     
         response = self.response(clause=(s.negedge,) * 9, expected=expected)
-        self.runSim(Simulation(stimulus, response))
-        self.assertTrue(self.duration <= now())
+
+        sim = Simulation(stimulus, response)
+        self.runSim(sim)
+        with _simulator.simulation_context(sim):
+            self.assertTrue(self.duration <= now())
 
         
 class WaveformSigDelay(Waveform):

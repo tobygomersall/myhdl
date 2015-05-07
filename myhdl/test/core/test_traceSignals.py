@@ -180,15 +180,18 @@ class TestTraceSigs(TestCase):
     def testBackupOutputFile(self):
         p = "%s.vcd" % fun.__name__
         dut = traceSignals(fun)
-        Simulation(dut).run(1000, quiet=QUIET)
+        sim = Simulation(dut)
+        sim.run(1000, quiet=QUIET)
         _simulator._tf.close()
         _simulator._tracing = 0
+
         size = path.getsize(p)
         pbak = p + '.' + str(path.getmtime(p))
         self.assertTrue(not path.exists(pbak))
         dut = traceSignals(fun)
         _simulator._tf.close()
         _simulator._tracing = 0
+
         self.assertTrue(path.exists(p))
         self.assertTrue(path.exists(pbak))
         self.assertTrue(path.getsize(pbak) == size)

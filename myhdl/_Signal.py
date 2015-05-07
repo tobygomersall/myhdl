@@ -35,13 +35,13 @@ import operator
 
 from myhdl._compat import integer_types, long
 from myhdl import _simulator as sim
-from myhdl._simulator import _signals, _siglist, _futureEvents, now
 from myhdl._intbv import intbv
 from myhdl._bin import bin
 
 # from myhdl._enum import EnumItemType
 
-_schedule = _futureEvents.append
+def _schedule(event):
+    sim._futureEvents.append(event)
 
    
 def _isListOfSigs(obj):
@@ -165,7 +165,39 @@ class _Signal(object):
         self._code = ""
         self._slicesigs = []
         self._tracing = 0
-        _signals.append(self)
+        sim._signals.append(self)
+
+    def _stash_state(self):
+        
+        sim._signal_state[id(self)] = {
+            'eventWaiters': copy(self._eventWaiters),
+            'posedgeWaiters': copy(self._posedgeWaiters),
+            'negedgeWaiters': copy(self._negedgeWaiters),
+            'val': deepcopy(self._val),
+            'next': deepcopy(self._next),
+            'name': self._name,
+            'read': self._read,
+            'driven': self._driven,
+            'numeric': self._numeric}
+
+        for s in self._slicesigs:
+            s._stash_state()
+
+    def _recall_state(self):
+        
+        state_dict = sim._signal_state[id(self)]
+        self._eventWaiters[:] = state_dict['eventWaiters']
+        self._posedgeWaiters[:] = state_dict['posedgeWaiters']
+        self._negedgeWaiters[:] = state_dict['negedgeWaiters']
+        self._val = deepcopy(state_dict['val'])
+        self._next = deepcopy(state_dict['next'])
+        self._name = state_dict['name']
+        self._read = state_dict['read']
+        self._driven = state_dict['driven']
+        self._numeric = state_dict['numeric']
+
+        for s in self._slicesigs:
+            s._recall_state()
 
     def _clear(self):
         del self._eventWaiters[:]
@@ -213,7 +245,7 @@ class _Signal(object):
     def next(self):
 #        if self._next is self._val:
 #            self._next = deepcopy(self._val)
-        _siglist.append(self)
+        sim._siglist.append(self)
         return self._next
 
     @next.setter
@@ -221,7 +253,7 @@ class _Signal(object):
         if isinstance(val, _Signal):
             val = val._val
         self._setNextVal(val)
-        _siglist.append(self)
+        sim._siglist.append(self)
 
     # support for the 'posedge' attribute
     @property
