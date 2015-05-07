@@ -25,6 +25,7 @@ now -- function that returns the current simulation time
 """
 
 from contextlib import contextmanager
+import weakref
 import sys
 import types
 
@@ -41,18 +42,17 @@ class _SimContextManager(types.ModuleType):
         self.copy = copy.copy
 
         self._data = _threading.local()
+        self._data._default_context = {'signals': [],
+                                       'siglist': [],
+                                       'futureEvents': [],
+                                       'time': 0,
+                                       'cosim': 0,
+                                       'tracing': 0,
+                                       'tf': None,
+                                       'signal_state': {}}
 
         # Set up the default context, denoted by None.
-        self._data.context_dict = {
-            None: {'signals': [],
-                   'siglist': [],
-                   'futureEvents': [],
-                   'time': 0,
-                   'cosim': 0,
-                   'tracing': 0,
-                   'tf': None,
-                   'signal_state': {}
-                  }}
+        self._data.context_dict = weakref.WeakKeyDictionary()
 
         self._data.current_context = None
 
@@ -60,83 +60,91 @@ class _SimContextManager(types.ModuleType):
         
         self._data.current_context = context_id
 
-        if self._data.current_context not in self._data.context_dict:
+        if (self._data.current_context not in self._data.context_dict and
+            self._data.current_context is not None):
+
             new_context = {}
 
             # Copy the default context
-            for each in self._data.context_dict[None]:
+            for each in self._data._default_context:
                 new_context[each] = self.copy(
-                    self._data.context_dict[None][each])
+                    self._data._default_context[each])
 
-            self._data.context_dict[self._data.current_context] = new_context            
+            self._data.context_dict[self._data.current_context] = new_context
+
+    def _get_context(self):
+        
+        if self._data.current_context is None:
+            context = self._data._default_context
+
+        else:
+            context = self._data.context_dict[self._data.current_context]
+
+        return context
 
     @property
     def _signals(self):
-        return self._data.context_dict[self._data.current_context]['signals']
+        return self._get_context()['signals']
 
     @_signals.setter
     def _signals(self, val):
-        self._data.context_dict[self._data.current_context]['signals'] = val
+        self._get_context()['signals'] = val
 
     @property
     def _signal_state(self):
-        return self._data.context_dict[
-            self._data.current_context]['signal_state']
+        return self._get_context()['signal_state']
 
-    @_signals.setter
+    @_signal_state.setter
     def _signal_state(self, val):
-        self._data.context_dict[
-            self._data.current_context]['signal_state'] = val
+        self._get_context()['signal_state'] = val
 
     @property
     def _siglist(self):
-        return self._data.context_dict[self._data.current_context]['siglist']
+        return self._get_context()['siglist']
 
     @_siglist.setter
     def _siglist(self, val):
-        self._data.context_dict[self._data.current_context]['siglist'] = val
+        self._get_context()['siglist'] = val
     
     @property
     def _futureEvents(self):
-        return self._data.context_dict[
-            self._data.current_context]['futureEvents']
+        return self._get_context()['futureEvents']
 
     @_futureEvents.setter
     def _futureEvents(self, val):
-        self._data.context_dict[
-            self._data.current_context]['futureEvents'] = val
+        self._get_context()['futureEvents'] = val
 
     @property
     def _time(self):
-        return self._data.context_dict[self._data.current_context]['time']
+        return self._get_context()['time']
 
     @_time.setter
     def _time(self, val):
-        self._data.context_dict[self._data.current_context]['time'] = val
+        self._get_context()['time'] = val
 
     @property
     def _cosim(self):
-        return self._data.context_dict[self._data.current_context]['cosim']
+        return self._get_context()['cosim']
 
     @_cosim.setter
     def _cosim(self, val):
-        self._data.context_dict[self._data.current_context]['cosim'] = val
+        self._get_context()['cosim'] = val
 
     @property
     def _tracing(self):
-        return self._data.context_dict[self._data.current_context]['tracing']
+        return self._get_context()['tracing']
 
     @_tracing.setter
     def _tracing(self, val):
-        self._data.context_dict[self._data.current_context]['tracing'] = val
+        self._get_context()['tracing'] = val
 
     @property
     def _tf(self):
-        return self._data.context_dict[self._data.current_context]['tf']
+        return self._get_context()['tf']
 
     @_tf.setter
     def _tf(self, val):
-        self._data.context_dict[self._data.current_context]['tf'] = val
+        self._get_context()['tf'] = val
 
     def now(self):
         """ Return the current simulation time """
@@ -151,10 +159,23 @@ class _SimContextManager(types.ModuleType):
                 'default context.')
 
         try:
+            #for signal in self._signals:
+            #    signal._stash_state()
+            
             self._set_context_id(context_id)
+
+            #for signal in self._signals:
+            #    signal._recall_state()
+
             yield
         finally:
+            #for signal in self._signals:
+            #    signal._stash_state()
+            
             self._set_context_id(None)
+
+            #for signal in self._signals:
+            #    signal._recall_state()
 
 sys.modules[__name__] = _SimContextManager()
 
