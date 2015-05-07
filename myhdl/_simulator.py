@@ -51,7 +51,6 @@ class _SimContextManager(types.ModuleType):
                                        'tf': None,
                                        'signal_state': {}}
 
-        # Set up the default context, denoted by None.
         self._data.context_dict = weakref.WeakKeyDictionary()
 
         self._data.current_context = None
