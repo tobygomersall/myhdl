@@ -159,23 +159,23 @@ class _SimContextManager(types.ModuleType):
                 'default context.')
 
         try:
-            #for signal in self._signals:
-            #    signal._stash_state()
+            for signal in self._signals:
+                signal._stash_state()
             
             self._set_context_id(context_id)
 
-            #for signal in self._signals:
-            #    signal._recall_state()
+            for signal in self._signals:
+                signal._recall_state()
 
             yield
         finally:
-            #for signal in self._signals:
-            #    signal._stash_state()
+            for signal in self._signals:
+                signal._stash_state()
             
             self._set_context_id(None)
 
-            #for signal in self._signals:
-            #    signal._recall_state()
+            for signal in self._signals:
+                signal._recall_state()
 
 sys.modules[__name__] = _SimContextManager()
 
