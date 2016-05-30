@@ -139,6 +139,9 @@ class block(object):
 #    deco.calls = 0
 #    return deco
 
+import string
+class _UserCodePreparseTemplate(string.Template):
+    idpattern = r'[a-z][\._a-z0-9]*'
 
 class _Block(object):
 
@@ -153,6 +156,8 @@ class _Block(object):
         self.modctxt = callinfo.modctxt
         self.callername = callinfo.name
         self.symdict = None
+        self.usedsigdict = None
+        self.usedlosdict = None
         self.sigdict = {}
         self.memdict = {}
         self.name = self.__name__ = func.__name__ + '_' + str(calls - 1)
@@ -167,7 +172,44 @@ class _Block(object):
             self.verilog_code = _UserVerilogCode(deco.verilog_code, self.symdict, func.__name__,
                                                  func, srcfile, srcline)
         if hasattr(deco, 'vhdl_code'):
-            self.vhdl_code = _UserVhdlCode(deco.vhdl_code, self.symdict, func.__name__,
+            if len(self.usedsigdict) > 0:
+                symbols = _UserCodePreparseTemplate.pattern.findall(
+                    deco.vhdl_code)
+
+                # Create an ordered mapping from keys to signal ids
+                usedsigdict_keys = self.usedsigdict.keys()
+                usedsigdict_vals = [
+                    id(self.usedsigdict[key]) for key in usedsigdict_keys]
+
+                munged_signals = {}
+                for symbol in symbols:
+                    for match in symbol:
+                        signal_hierarchy = match.split('.')
+                        if len(signal_hierarchy) > 1:
+                            # recurse through the hierarchy of the interface
+                            # to extract the signal object
+                            top_level_name = signal_hierarchy[0]
+                            this_signal = reduce(
+                                getattr, signal_hierarchy[1:],
+                                self.symdict[top_level_name])
+
+                            try:
+                                munged_signals[match] = (
+                                    '${' + usedsigdict_keys[
+                                    usedsigdict_vals.index(id(this_signal))]
+                                    + '}')
+
+                            except ValueError:
+                                pass
+
+                vhdl_code_template = _UserCodePreparseTemplate(deco.vhdl_code)
+                vhdl_code = (
+                    vhdl_code_template.safe_substitute(munged_signals))
+
+            else:
+                vhdl_code = deco.vhdl_code
+
+            self.vhdl_code = _UserVhdlCode(vhdl_code, self.symdict, func.__name__,
                                            func, srcfile, srcline)
         self._config_sim = {'trace': False}
 
@@ -199,6 +241,8 @@ class _Block(object):
         # sigdict and losdict from Instantiator objects may contain new
         # references. Therefore, update the symdict with them.
         # To be revisited.
+        self.usedsigdict = usedsigdict
+        self.usedlosdict = usedlosdict        
         self.symdict.update(usedsigdict)
         self.symdict.update(usedlosdict)
         # Infer sigdict and memdict, with compatibility patches from _extractHierarchy
