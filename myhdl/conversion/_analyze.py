@@ -1240,10 +1240,16 @@ def isboundmethod(m):
 def expandinterface(v, name, obj):
     for attr, attrobj in vars(obj).items():
         if isinstance(attrobj, _Signal):
-            signame = attrobj._name
-            if not signame:
-                signame = name + '_' + attr
-                attrobj._name = signame
+            # FIXME
+            #signame = attrobj._name
+            #if not signame:
+            #    signame = name + '_' + attr
+            #    attrobj._name = signame
+            # Replaced with:
+            signame = name + '_' + attr
+            attrobj._name = signame
+            # END
+
             v.argdict[signame] = attrobj
             v.argnames.append(signame)
         elif isinstance(attrobj, myhdl.EnumType):
