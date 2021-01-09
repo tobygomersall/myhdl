@@ -201,8 +201,10 @@ class ConcatSignal(_ShadowSignal):
                 w = len(a)
             lo = hi - w
 
-            if isinstance(a, _Signal) and not a.driven:
-                # Check that signal a is driven and raise a warning if not
+            if isinstance(a, _Signal) and a._name is None:
+                # We have seen a bug when a signal in the ConcatSignal is not
+                # driven. In this situation a._name is None. This gets written
+                # into the converted VHDL or Verilog and causes problems.
                 from myhdl.conversion._misc import _error
                 from myhdl import ToVHDLWarning
 
@@ -216,7 +218,9 @@ class ConcatSignal(_ShadowSignal):
                         category=ToVHDLWarning)
 
             if w == 1:
-                if isinstance(a, _Signal) and a.driven:
+                if isinstance(a, _Signal) and a._name is not None:
+                    # Check that a._name is not None as None should not be
+                    # written into the converted code
                     if a._type == bool:  # isinstance(a._type , bool): <- doesn't work
                         lines.append("%s(%s) <= %s;" % (self._name, lo, a._name))
                     else:
@@ -224,7 +228,9 @@ class ConcatSignal(_ShadowSignal):
                 else:
                     lines.append("%s(%s) <= '%s';" % (self._name, lo, bin(ini[lo])))
             else:
-                if isinstance(a, _Signal) and a.driven:
+                if isinstance(a, _Signal) and a._name is not None:
+                    # Check that a._name is not None as None should not be
+                    # written into the converted code
                     lines.append("%s(%s-1 downto %s) <= %s;" % (self._name, hi, lo, a._name))
                 else:
                     lines.append('%s(%s-1 downto %s) <= "%s";' %
@@ -244,8 +250,10 @@ class ConcatSignal(_ShadowSignal):
                 w = len(a)
             lo = hi - w
 
-            if isinstance(a, _Signal) and not a.driven:
-                # Check that signal a is driven and raise a warning if not
+            if isinstance(a, _Signal) and a._name is None:
+                # We have seen a bug when a signal in the ConcatSignal is not
+                # driven. In this situation a._name is None. This gets written
+                # into the converted VHDL or Verilog and causes problems.
                 from myhdl.conversion._misc import _error
                 from myhdl import ToVerilogWarning
 
@@ -259,7 +267,9 @@ class ConcatSignal(_ShadowSignal):
                         category=ToVerilogWarning)
 
             if w == 1:
-                if isinstance(a, _Signal) and a.driven:
+                if isinstance(a, _Signal) and a._name is not None:
+                    # Check that a._name is not None as None should not be
+                    # written into the converted code
                     if a._type == bool:
                         lines.append("assign %s[%s] = %s;" % (self._name, lo, a._name))
                     else:
@@ -267,7 +277,9 @@ class ConcatSignal(_ShadowSignal):
                 else:
                     lines.append("assign %s[%s] = 'b%s;" % (self._name, lo, bin(ini[lo])))
             else:
-                if isinstance(a, _Signal) and a.driven:
+                if isinstance(a, _Signal) and a._name is not None:
+                    # Check that a._name is not None as None should not be
+                    # written into the converted code
                     lines.append("assign %s[%s-1:%s] = %s;" % (self._name, hi, lo, a._name))
                 else:
                     lines.append("assign %s[%s-1:%s] = 'b%s;" %
