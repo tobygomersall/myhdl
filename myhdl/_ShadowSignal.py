@@ -202,9 +202,16 @@ class ConcatSignal(_ShadowSignal):
             lo = hi - w
 
             if isinstance(a, _Signal) and a._name is None:
-                # We have seen a bug when a signal in the ConcatSignal is not
-                # driven. In this situation a._name is None. This gets written
-                # into the converted VHDL or Verilog and causes problems.
+                # We have seen a bug when a concat signal is created in the
+                # following way:
+                #
+                #     sig_list = [Signal(False) for n in range(32)]
+                #     concat_sig = ConcatSignal(*reversed(sig_list))
+                #
+                # It seems that the _name attribute on the signals in sig_list
+                # is only updated if an assignment is made to them. Otherwise
+                # _name is left as None. We need to check for None and raise
+                # a warning.
                 from myhdl.conversion._misc import _error
                 from myhdl import ToVHDLWarning
 
@@ -220,7 +227,12 @@ class ConcatSignal(_ShadowSignal):
             if w == 1:
                 if isinstance(a, _Signal) and a._name is not None:
                     # Check that a._name is not None as None should not be
-                    # written into the converted code
+                    # written into the converted code. If it is None then we
+                    # assume no assignment has been made to the signal
+                    # (otherwise the _name attribute would have been updated
+                    # by the _analyzeSigs function). In this situation the
+                    # signal should hold its init value (as handled in the
+                    # else branch).
                     if a._type == bool:  # isinstance(a._type , bool): <- doesn't work
                         lines.append("%s(%s) <= %s;" % (self._name, lo, a._name))
                     else:
@@ -251,9 +263,16 @@ class ConcatSignal(_ShadowSignal):
             lo = hi - w
 
             if isinstance(a, _Signal) and a._name is None:
-                # We have seen a bug when a signal in the ConcatSignal is not
-                # driven. In this situation a._name is None. This gets written
-                # into the converted VHDL or Verilog and causes problems.
+                # We have seen a bug when a concat signal is created in the
+                # following way:
+                #
+                #     sig_list = [Signal(False) for n in range(32)]
+                #     concat_sig = ConcatSignal(*reversed(sig_list))
+                #
+                # It seems that the _name attribute on the signals in sig_list
+                # is only updated if an assignment is made to them. Otherwise
+                # _name is left as None. We need to check for None and raise
+                # a warning.
                 from myhdl.conversion._misc import _error
                 from myhdl import ToVerilogWarning
 
@@ -269,7 +288,12 @@ class ConcatSignal(_ShadowSignal):
             if w == 1:
                 if isinstance(a, _Signal) and a._name is not None:
                     # Check that a._name is not None as None should not be
-                    # written into the converted code
+                    # written into the converted code. If it is None then we
+                    # assume no assignment has been made to the signal
+                    # (otherwise the _name attribute would have been updated
+                    # by the _analyzeSigs function). In this situation the
+                    # signal should hold its init value (as handled in the
+                    # else branch).
                     if a._type == bool:
                         lines.append("assign %s[%s] = %s;" % (self._name, lo, a._name))
                     else:
