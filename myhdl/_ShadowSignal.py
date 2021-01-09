@@ -199,7 +199,6 @@ class ConcatSignal(_ShadowSignal):
                 w = 1
             else:
                 w = len(a)
-
             lo = hi - w
 
             if isinstance(a, _Signal) and not a.driven:
@@ -239,6 +238,12 @@ class ConcatSignal(_ShadowSignal):
         hi = self._nrbits
         for a in self._args:
 
+            if isinstance(a, bool):
+                w = 1
+            else:
+                w = len(a)
+            lo = hi - w
+
             if isinstance(a, _Signal) and not a.driven:
                 # Check that signal a is driven and raise a warning if not
                 from myhdl.conversion._misc import _error
@@ -253,11 +258,6 @@ class ConcatSignal(_ShadowSignal):
                         "%s: %s[%s:%s]" % (_error.UndrivenSignal, self._name, hi, lo),
                         category=ToVerilogWarning)
 
-            if isinstance(a, bool):
-                w = 1
-            else:
-                w = len(a)
-            lo = hi - w
             if w == 1:
                 if isinstance(a, _Signal) and a.driven:
                     if a._type == bool:
